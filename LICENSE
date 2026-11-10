@@ -1,0 +1,34 @@
+宝宝哭声翻译器 使用许可
+
+Copyright (c) 2026 赛博老爸。保留所有权利。
+
+本系统免费开源，仅用于帮助宝爸宝妈缓解带娃的困扰。未经作者许可，禁止任何形式的商业使用，侵权必究。
+
+允许：
+- 个人、家庭免费使用；
+- 学习、研究、非营利用途下查看、修改和再分发源码，但须保留本许可文件和作者署名「DEVELOPED by @赛博老爸」。
+
+禁止（未经作者书面许可）：
+- 把本系统或修改后的版本用于任何营利目的，包括但不限于付费售卖、收费部署、嵌入收费产品或服务、靠它投放广告获利；
+- 去掉或修改作者署名后对外发布。
+
+商业授权请联系作者。
+
+本许可参照 PolyForm Noncommercial License 1.0.0 的非商用原则，SPDX 标识：PolyForm-Noncommercial-1.0.0
+全文见 https://polyformproject.org/licenses/noncommercial/1.0.0
+
+本系统按「现状」提供，不提供任何形式的担保，不构成医疗建议。作者不对使用本系统产生的任何后果负责。
+
+---
+
+This project is source-available for noncommercial use only.
+License: PolyForm Noncommercial License 1.0.0
+https://polyformproject.org/licenses/noncommercial/1.0.0
+Required Notice: Copyright (c) 2026 赛博老爸 — DEVELOPED by @赛博老爸
+
+Third-party components shipped in this repository keep their own licenses
+and are not covered by the noncommercial restriction above:
+
+- model/yamnet-weights.*  derived from Google's YAMNet weights, Apache License 2.0
+- lib/tf.min.js           TensorFlow.js, Apache License 2.0
+- sample/cry-demo.wav     Donate-a-cry corpus, ODbL 1.0 / DbCL 1.0

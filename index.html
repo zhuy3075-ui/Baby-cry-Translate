@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--HEAD-PREFIX-END: 发布到 Claude 预览时会去掉以上几行，自己部署时保留-->
+<title>宝宝哭声翻译器</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="宝宝哭了点一下，手机在本机听一听：是不是在哭、哭得急不急、结合喂奶睡觉尿布时间猜可能原因，并给出安抚办法。">
+<meta name="theme-color" content="#FFF5D6">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="哭声翻译器">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=ZCOOL+KuaiLe&display=swap">
+<style>
+/* 绘本风单栏手机布局：最上面一张「听」的主卡片，往下依次是记录、结果、就医提醒、日记；最宽 480px */
+:root {
+  --paper: #FFF5D6;
+  --card: #FFFCF2;
+  --ink: #2C3768;
+  --ink-2: #5E678E;
+  --line: #EEDDAE;
+  --dot: #F3E3B5;
+  --peach: #FF8A6B;
+  --peach-deep: #E56C4E;
+  --peach-soft: #FFE3D7;
+  --mint: #2F9E78;
+  --mint-soft: #DDF3E9;
+  --lilac: #7C6BD6;
+  --lilac-soft: #E9E4FB;
+  --sky: #4C97DB;
+  --sky-soft: #DEEBF9;
+  --sun: #B27A00;
+  --sun-soft: #FFEDB8;
+  --danger: #D2434A;
+  --danger-soft: #FDE4E2;
+  --scrim: rgba(44, 55, 104, .38);
+  --pro-bg: #2C3768;
+  --pro-ink: #FFF5D6;
+  --pro-ink-2: #C9CCE3;
+  --pro-accent: #FFD36B;
+  --pro-line: #4A5488;
+  --shadow: #EAD7A0;
+  /* 宝宝脸在两种主题下都是浅色，五官颜色固定 */
+  --skin: #FFE1C6;
+  --blush: #FF9C86;
+  --face-ink: #2C3768;
+  --tear: #6BB4F0;
+
+  --display: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --body: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --num: "Fredoka", ui-rounded, "SF Pro Rounded", -apple-system, "PingFang SC", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #161B33; --card: #212850; --ink: #F7EFD8; --ink-2: #AEB3D2; --line: #343C6E; --dot: #1E2445;
+    --peach: #FF9878; --peach-deep: #D06A50; --peach-soft: #4A2F3E; --mint: #6FD3AE; --mint-soft: #1D4241;
+    --lilac: #B1A5FF; --lilac-soft: #343163; --sky: #8BC2F5; --sky-soft: #213A60; --sun: #FFD36B; --sun-soft: #4A3F26;
+    --danger: #FF8085; --danger-soft: #4C2535; --scrim: rgba(5, 7, 20, .6);
+    --pro-bg: #F7EFD8; --pro-ink: #20264A; --pro-ink-2: #5E678E; --pro-accent: #B27A00; --pro-line: #D9CFAE; --shadow: #0D1129;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #161B33; --card: #212850; --ink: #F7EFD8; --ink-2: #AEB3D2; --line: #343C6E; --dot: #1E2445;
+  --peach: #FF9878; --peach-deep: #D06A50; --peach-soft: #4A2F3E; --mint: #6FD3AE; --mint-soft: #1D4241;
+  --lilac: #B1A5FF; --lilac-soft: #343163; --sky: #8BC2F5; --sky-soft: #213A60; --sun: #FFD36B; --sun-soft: #4A3F26;
+  --danger: #FF8085; --danger-soft: #4C2535; --scrim: rgba(5, 7, 20, .6);
+  --pro-bg: #F7EFD8; --pro-ink: #20264A; --pro-ink-2: #5E678E; --pro-accent: #B27A00; --pro-line: #D9CFAE; --shadow: #0D1129;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body {
+  margin: 0;
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--dot) 1.2px, transparent 1.6px);
+  background-size: 22px 22px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 36px;
+}
+button, input { font: inherit; color: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; border-radius: 12px; }
+.wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.num { font-family: var(--num); font-variant-numeric: tabular-nums; }
+.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* 顶部 */
+.top { display: flex; align-items: center; gap: 10px; }
+.top .logo { width: 42px; height: 42px; flex: none; border-radius: 50%; background: var(--peach); display: grid; place-items: center; }
+.top .logo svg { width: 36px; height: 36px; }
+.top h1 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.2; margin: 0; letter-spacing: .02em; text-wrap: balance; min-width: 0; }
+.priv { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--ink-2); background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.priv .ic { font-size: 13px; color: var(--mint); }
+
+/* 主卡片：听 */
+.hero { background: var(--card); border: 2px solid var(--line); border-radius: 28px; box-shadow: 0 4px 0 var(--shadow); padding: 24px 18px 18px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+.listen { position: relative; width: 184px; height: 184px; margin: 8px 0 4px; border: 0; border-radius: 50%; background: var(--peach); box-shadow: 0 7px 0 var(--peach-deep); cursor: pointer; display: grid; place-items: center; transition: transform .12s ease, box-shadow .12s ease; }
+.listen:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--peach-deep); }
+.listen .mascot { width: 148px; height: 148px; }
+.listen .ring { position: absolute; inset: -13px; border-radius: 50%; border: 3px dashed var(--peach); opacity: .55; pointer-events: none; animation: spin 30s linear infinite; }
+.listen .ring.r2 { inset: -13px; border-style: solid; opacity: 0; animation: none; }
+.listen.is-rec .ring { border-style: solid; animation: none; opacity: .5; }
+.listen.is-rec .ring.r2 { animation: pulse 1.4s ease-out infinite; }
+.listen.is-busy .mascot { animation: bob 1.1s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { from { transform: scale(1); opacity: .6; } to { transform: scale(1.28); opacity: 0; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.hero-title { font-family: var(--display); font-size: 22px; line-height: 1.3; margin: 0; text-wrap: balance; }
+.hero-sub { margin: 0; font-size: 14px; color: var(--ink-2); max-width: 30em; text-wrap: balance; }
+.meter { display: flex; align-items: center; justify-content: center; gap: 3px; height: 34px; width: 100%; max-width: 300px; }
+.meter i { display: block; flex: 1; max-width: 7px; height: 100%; border-radius: 99px; background: var(--line); transform: scaleY(.14); transform-origin: center; transition: transform .08s linear; }
+.meter.is-on i { background: var(--peach); }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 9px 16px; border-radius: 999px; border: 2px solid var(--line); background: var(--paper); color: var(--ink); font-weight: 600; font-size: 15px; cursor: pointer; }
+.btn .ic { font-size: 17px; color: var(--peach); }
+.btn:active { transform: translateY(1px); }
+.status { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); margin: 2px 0 0; }
+.status .pbar { width: 72px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.status .pbar b { display: block; height: 100%; width: 0; background: var(--mint); border-radius: inherit; transition: width .2s; }
+.status.is-error { color: var(--danger); }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--sky); font-weight: 600; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.notice { width: 100%; text-align: left; font-size: 14px; line-height: 1.55; background: var(--sun-soft); border-radius: 16px; padding: 10px 12px; margin: 0; }
+
+/* 通用卡片 */
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 18px; }
+.card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.card h2 { font-family: var(--display); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 0; }
+.hint { font-size: 13px; color: var(--ink-2); margin: 0; }
+
+/* 宝宝最近 */
+.log-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 10px; border-radius: 18px; border: 0; text-align: left; cursor: pointer; min-width: 0; }
+.tile .ic { font-size: 26px; }
+.tile .lb { font-size: 13px; color: var(--ink-2); }
+.tile .val { font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 14.5px; line-height: 1.3; }
+.tile .val.is-empty { font-family: var(--body); font-weight: 500; font-size: 13px; color: var(--ink-2); }
+.t-feed { background: var(--peach-soft); } .t-feed .ic { color: var(--peach); }
+.t-wake { background: var(--lilac-soft); } .t-wake .ic { color: var(--lilac); }
+.t-diaper { background: var(--sky-soft); } .t-diaper .ic { color: var(--sky); }
+.age { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.age > span { font-size: 14px; color: var(--ink-2); }
+.seg { display: flex; flex: 1; min-width: 0; background: var(--paper); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button { flex: 1; min-width: 0; border: 0; background: transparent; border-radius: 999px; padding: 7px 4px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); font-weight: 700; box-shadow: 0 2px 0 var(--line); }
+
+/* 结果 */
+.res-top { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.badge { white-space: nowrap; flex: none; font-size: 12px; line-height: 1.6; padding: 1px 9px; border-radius: 999px; background: var(--sun-soft); color: var(--ink); font-weight: 600; }
+.verdict { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.verdict .face { width: 78px; height: 78px; flex: none; border-radius: 50%; background: var(--peach-soft); display: grid; place-items: center; }
+.verdict .face .mascot { width: 66px; height: 66px; }
+.verdict-text { min-width: 0; flex: 1; }
+.verdict h3 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.25; margin: 0; text-wrap: balance; }
+.verdict .sub { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-2); }
+.score { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--ink-2); }
+.bar { flex: 1; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar b { display: block; height: 100%; border-radius: inherit; background: var(--peach); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.stat { background: var(--paper); border-radius: 14px; padding: 9px 10px; min-width: 0; }
+.stat b { display: block; font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 17px; line-height: 1.35; }
+.stat span { display: block; font-size: 12px; color: var(--ink-2); line-height: 1.4; }
+.u-calm b { color: var(--mint); } .u-fussy b { color: var(--sun); } .u-urgent b { color: var(--danger); }
+.sec { font-size: 15px; font-weight: 700; margin: 18px 0 8px; }
+.reasons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.reason { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 10px; align-items: start; padding: 11px 12px; border-radius: 16px; background: var(--paper); }
+.reason.is-top { background: var(--peach-soft); }
+.reason .rico { width: 38px; height: 38px; border-radius: 12px; background: var(--card); display: grid; place-items: center; }
+.reason .rico .ic { font-size: 22px; }
+.reason .rhead { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.reason .name { font-weight: 700; }
+.tag { font-size: 11.5px; line-height: 1.6; padding: 0 8px; border-radius: 999px; background: var(--card); color: var(--ink-2); }
+.is-top .tag { background: var(--peach); color: var(--card); font-weight: 700; }
+.rbar { height: 6px; border-radius: 99px; background: var(--card); margin: 6px 0 5px; overflow: hidden; }
+.rbar b { display: block; height: 100%; border-radius: inherit; background: var(--ink-2); opacity: .55; }
+.is-top .rbar b { background: var(--peach); opacity: 1; }
+.reason p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.k-hungry .rico { color: var(--peach); } .k-tired .rico { color: var(--lilac); } .k-diaper .rico { color: var(--sky); }
+.k-gas .rico { color: var(--sun); } .k-comfort .rico { color: var(--danger); }
+.tips { margin: 0; padding-left: 1.25em; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
+.tips li::marker { color: var(--peach); }
+.alert { margin: 12px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--danger-soft); font-size: 14px; }
+.fine { margin: 12px 0 0; font-size: 12.5px; color: var(--ink-2); }
+details.how { margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+details.how summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+details.how ol { margin: 6px 0 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; }
+
+/* 就医提醒 */
+.flags h2 { display: flex; align-items: center; gap: 8px; }
+.flags h2 .ic { color: var(--danger); font-size: 22px; }
+.flags ul { margin: 10px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 5px; font-size: 14.5px; }
+.flags ul li::marker { color: var(--danger); }
+.calm-note { margin: 12px 0 0; font-size: 14px; background: var(--paper); border-radius: 14px; padding: 10px 12px; }
+
+/* 日记 */
+.diary-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+.diary-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1.5px dashed var(--line); font-size: 14px; }
+.diary-list li:first-child { border-top: 0; }
+.diary-list time { font-family: var(--num); font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
+.chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--paper); color: var(--ink-2); white-space: nowrap; }
+.chip.c-cry { background: var(--peach-soft); color: var(--ink); }
+.empty { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); }
+.smallbtn { border: 1.5px solid var(--line); background: var(--paper); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.smallbtn.is-confirm { border-color: var(--danger); color: var(--danger); }
+
+/* 免责声明 */
+.terms { background: var(--pro-bg); color: var(--pro-ink); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.terms-h { display: flex; align-items: center; gap: 8px; }
+.terms-h .ic { font-size: 22px; color: var(--pro-accent); }
+.terms h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
+.terms .lead { margin: 0; font-size: 15px; line-height: 1.65; font-weight: 600; }
+.terms ul { margin: 0; padding: 12px 0 0 1.2em; border-top: 1.5px dashed var(--pro-line); font-size: 13.5px; line-height: 1.6; color: var(--pro-ink-2); display: flex; flex-direction: column; gap: 5px; }
+.terms ul li::marker { color: var(--pro-accent); }
+
+footer.dev { text-align: center; font-family: var(--num); font-weight: 600; font-size: 13px; letter-spacing: .08em; color: var(--ink-2); padding: 2px 0 0; }
+
+/* 底部弹层 */
+.sheet-back { position: fixed; inset: 0; z-index: 40; background: var(--scrim); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 480px; background: var(--card); border-radius: 26px 26px 0 0; padding-top: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; }
+.sheet h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 20px; }
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.opt { min-height: 46px; border: 2px solid var(--line); background: var(--paper); border-radius: 14px; font-size: 15px; cursor: pointer; }
+.opt.is-now { border-color: var(--peach); background: var(--peach-soft); font-weight: 700; }
+.sheet-foot { display: flex; justify-content: space-between; gap: 8px; }
+
+/* 小团子表情 */
+.mascot .p { display: none; }
+.sk { fill: var(--skin); } .bl { fill: var(--blush); opacity: .75; } .fi { fill: var(--face-ink); }
+.st { fill: none; stroke: var(--face-ink); stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.tr { fill: var(--tear); } .zz { fill: var(--lilac); font-family: var(--num); font-weight: 600; }
+.mascot[data-mood="idle"] .p-es, .mascot[data-mood="idle"] .p-ms,
+.mascot[data-mood="listen"] .p-eo, .mascot[data-mood="listen"] .p-mo,
+.mascot[data-mood="think"] .p-eo, .mascot[data-mood="think"] .p-ms,
+.mascot[data-mood="cry"] .p-ec, .mascot[data-mood="cry"] .p-mc, .mascot[data-mood="cry"] .p-tr,
+.mascot[data-mood="hungry"] .p-eo, .mascot[data-mood="hungry"] .p-mo,
+.mascot[data-mood="tired"] .p-es, .mascot[data-mood="tired"] .p-mo, .mascot[data-mood="tired"] .p-zz,
+.mascot[data-mood="diaper"] .p-eo, .mascot[data-mood="diaper"] .p-mf,
+.mascot[data-mood="gas"] .p-ec, .mascot[data-mood="gas"] .p-mw,
+.mascot[data-mood="comfort"] .p-eo, .mascot[data-mood="comfort"] .p-mc, .mascot[data-mood="comfort"] .p-tr,
+.mascot[data-mood="none"] .p-eo, .mascot[data-mood="none"] .p-ms { display: inline; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-bottle" viewBox="0 0 24 24"><path d="M9.5 2.5h5M10.5 2.5v3L8 8v11.5A2 2 0 0 0 10 21.5h4a2 2 0 0 0 2-2V8l-2.5-2.5v-3"/><path d="M8 12h8M8 15.5h5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.6A8.2 8.2 0 1 1 9.4 4a6.6 6.6 0 0 0 10.6 10.6z"/><path d="M16.5 3.5v3M15 5h3"/></symbol>
+    <symbol id="i-diaper" viewBox="0 0 24 24"><path d="M3 6.5h18v2.8A9 9 0 0 1 12 18.3a9 9 0 0 1-9-9z"/><path d="M8 6.5c0 3 1.8 5 4 5s4-2 4-5"/></symbol>
+    <symbol id="i-tummy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8.2a3.8 3.8 0 1 1-3.8 3.8 1.9 1.9 0 0 1 3.8 0"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-10.4A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.6c0 5.8-7.5 10.4-7.5 10.4z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4M7 8.5 12 3.8l5 4.7M5 20h14"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/></symbol>
+  </defs>
+</svg>
+
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo" data-mascot="idle"></div>
+    <h1>宝宝哭声翻译器</h1>
+    <span class="priv"><svg class="ic"><use href="#i-lock" xlink:href="#i-lock"/></svg>声音不上传</span>
+  </header>
+
+  <section class="hero" aria-labelledby="heroTitle">
+    <p class="notice" id="noJs">这个页面没有正常运行。请在手机浏览器（Safari、Chrome）里打开这个工具的网址，直接打开 html 文件是用不了的。</p>
+    <p class="notice" id="inappNotice" hidden>在微信、抖音里直接打开可能用不了麦克风。点右上角「···」，选「在浏览器打开」。</p>
+    <button class="listen" id="listenBtn" type="button" data-act="listen" aria-label="开始听宝宝哭声">
+      <span class="ring"></span><span class="ring r2"></span>
+      <span data-mascot="idle" id="heroFace">
+    <svg class="mascot" viewBox="0 0 120 120" data-mood="idle" aria-hidden="true">
+      <circle class="sk" cx="17" cy="66" r="9"/>
+      <circle class="sk" cx="103" cy="66" r="9"/>
+      <circle class="sk" cx="60" cy="64" r="44"/>
+      <path class="st" d="M57 22c-6-7 3-15 10-9"/>
+      <ellipse class="bl" cx="34" cy="78" rx="8" ry="5"/>
+      <ellipse class="bl" cx="86" cy="78" rx="8" ry="5"/>
+      <g class="p p-es"><path class="st" d="M36 62q6 6.5 12 0"/><path class="st" d="M72 62q6 6.5 12 0"/></g>
+      <g class="p p-eo"><circle class="fi" cx="42" cy="61" r="5.6"/><circle class="fi" cx="78" cy="61" r="5.6"/><circle class="sk" cx="44" cy="59" r="1.9"/><circle class="sk" cx="80" cy="59" r="1.9"/></g>
+      <g class="p p-ec"><path class="st" d="M36 56l11 5.5-11 5.5"/><path class="st" d="M84 56l-11 5.5 11 5.5"/></g>
+      <path class="p p-ms st" d="M52 83q8 7 16 0"/>
+      <ellipse class="p p-mo fi" cx="60" cy="86" rx="6" ry="7"/>
+      <path class="p p-mc fi" d="M47 93q13-19 26 0z"/>
+      <path class="p p-mf st" d="M52 87h16"/>
+      <path class="p p-mw st" d="M48 87q6-5 12 0t12 0"/>
+      <g class="p p-tr"><path class="tr" d="M40 69q-5 8 0 10.5q5-2.5 0-10.5z"/><path class="tr" d="M80 69q-5 8 0 10.5q5-2.5 0-10.5z"/></g>
+      <g class="p p-zz"><text class="zz" x="92" y="30" font-size="17">z</text><text class="zz" x="103" y="17" font-size="12">z</text></g>
+    </svg>
+      </span>
+    </button>
+    <h2 class="hero-title" id="heroTitle">宝宝哭了？点一下，我来听听</h2>
+    <p class="hero-sub" id="heroSub">手机离宝宝 30–50 厘米，听 8 秒就好</p>
+    <div class="meter" id="meter" aria-hidden="true"></div>
+    <div class="actions">
+      <label class="btn" for="fileInput"><svg class="ic"><use href="#i-upload" xlink:href="#i-upload"/></svg>上传录音</label>
+      <input type="file" id="fileInput" accept="audio/*,.m4a,.mp3,.wav,.aac,.caf,.ogg,.webm" hidden>
+      <button class="btn" type="button" data-act="demo"><svg class="ic"><use href="#i-play" xlink:href="#i-play"/></svg>试听示例哭声</button>
+    </div>
+    <p class="notice" id="notice" hidden></p>
+    <p class="status" id="status" aria-live="polite"><span class="pbar"><b id="pbar"></b></span><span id="statusText">小耳朵准备中…</span></p>
+  </section>
+
+  <section class="card" aria-labelledby="logTitle">
+    <div class="card-h">
+      <h2 id="logTitle">宝宝最近</h2>
+      <p class="hint">记一下，猜得更准</p>
+    </div>
+    <div class="log-grid">
+      <button class="tile t-feed" type="button" data-act="log" data-k="feed"><svg class="ic"><use href="#i-bottle" xlink:href="#i-bottle"/></svg><span class="lb">上次喂奶</span><span class="val" id="v-feed"></span></button>
+      <button class="tile t-wake" type="button" data-act="log" data-k="wake"><svg class="ic"><use href="#i-moon" xlink:href="#i-moon"/></svg><span class="lb">上次睡醒</span><span class="val" id="v-wake"></span></button>
+      <button class="tile t-diaper" type="button" data-act="log" data-k="diaper"><svg class="ic"><use href="#i-diaper" xlink:href="#i-diaper"/></svg><span class="lb">换尿布</span><span class="val" id="v-diaper"></span></button>
+    </div>
+    <div class="age">
+      <span id="ageLabel">宝宝多大</span>
+      <div class="seg" role="group" aria-labelledby="ageLabel">
+        <button type="button" data-act="age" data-v="0-3">0–3月</button>
+        <button type="button" data-act="age" data-v="3-6">3–6月</button>
+        <button type="button" data-act="age" data-v="6-12">6–12月</button>
+        <button type="button" data-act="age" data-v="12+">1岁+</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="result" aria-live="polite" aria-label="分析结果"></section>
+
+  <section class="card flags" aria-labelledby="flagTitle">
+    <h2 id="flagTitle"><svg class="ic"><use href="#i-cross" xlink:href="#i-cross"/></svg>这些情况别等，直接看医生</h2>
+    <ul>
+      <li>3 个月以内的宝宝发烧，体温到 38°C 或更高</li>
+      <li>哭声特别尖、像很疼；或者哭声很弱、没精神、叫不醒</li>
+      <li>呕吐（尤其喷射状或绿色）、不肯吃奶、呼吸很急、嘴唇发紫</li>
+      <li>摔过或磕到头以后一直哭</li>
+      <li>怎么哄都哄不好，持续了好几个小时</li>
+    </ul>
+    <p class="calm-note">实在哄不住、自己快崩溃的时候，先把宝宝仰面放进安全的小床，走开几分钟缓一缓。轻轻摇就好，千万别用力摇晃宝宝。</p>
+  </section>
+
+  <section class="card" aria-labelledby="diaryTitle">
+    <div class="card-h">
+      <h2 id="diaryTitle">哭声日记</h2>
+      <button class="smallbtn" type="button" id="clearHist" data-act="clearhist" hidden>清空</button>
+    </div>
+    <ul class="diary-list" id="diary"></ul>
+    <p class="empty" id="diaryEmpty">还没有记录。每听一次会自动记在这里，只存在这台手机上。</p>
+  </section>
+
+  <section class="terms" aria-labelledby="termsTitle">
+    <div class="terms-h"><svg class="ic"><use href="#i-shield" xlink:href="#i-shield"/></svg><h2 id="termsTitle">免责声明</h2></div>
+    <p class="lead">本系统免费开源，仅用于帮助宝爸宝妈缓解带娃的困扰。未经作者许可，禁止任何形式的商业使用，侵权必究。</p>
+    <ul>
+      <li>分析结果仅供参考，不能代替专业人士的建议。宝宝情况紧急时，请马上就医。</li>
+      <li>识别模型：Google YAMNet（Apache-2.0）。</li>
+      <li>示例哭声来自 Donate-a-cry 开源哭声语料库（ODbL）。</li>
+    </ul>
+  </section>
+
+  <footer class="dev">DEVELOPED by @赛博老爸</footer>
+</div>
+
+<div class="sheet-back" id="sheetBack" data-act="closesheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle">上次喂奶是什么时候？</h3>
+    <div class="opts" id="opts"></div>
+    <div class="sheet-foot">
+      <button class="smallbtn" type="button" data-act="clearlog">不记得了</button>
+      <button class="smallbtn" type="button" data-act="closesheet">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 配置：开源后按需修改 ===== */
+var CONFIG = {
+  // TF.js 依次尝试：本地文件 → jsDelivr → cdnjs
+  tfjs: [
+    'lib/tf.min.js',
+    'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.22.0/tf.min.js'
+  ],
+  modelBase: 'model/',
+  modelBin: 'yamnet-weights.bin',
+  demoUrl: 'sample/cry-demo.wav',
+  recordSeconds: 8
+};
+</script>
+
+<script id="core">
+/*CORE-START*/
+/* 哭声分析核心：特征 + YAMNet 推理 + 声学特征 + 原因推测。不碰 DOM，方便单独测试。 */
+var CRY = (function () {
+  'use strict';
+  var SR = 16000, WIN = 400, HOP = 160, NFFT = 512, NBIN = 257, NMEL = 64;
+  var PATCH = 96, PATCH_HOP = 48, PATCH_SIZE = PATCH * NMEL, NCLS = 521;
+  var I_BABY = 20, I_SOB = 19, I_CAT = 76, I_MEOW = 78, I_SILENCE = 494;
+  var CRY_SET = { 19: 1, 20: 1, 21: 1, 22: 1 };
+  var GENERIC = { 67: 1, 68: 1, 494: 1, 500: 1 };
+  var TH_CRY = 0.3, TH_MAYBE = 0.12;
+
+  // 常见声音的中文名（YAMNet 类别编号 → 中文）
+  var ZH = {
+    0: '大人说话', 1: '小朋友说话', 2: '聊天声', 3: '有人在讲话', 4: '宝宝咿呀声', 5: '电子语音', 6: '喊叫', 9: '大声叫',
+    10: '孩子喊叫', 11: '尖叫', 12: '说悄悄话', 13: '笑声', 14: '宝宝笑声', 15: '咯咯笑', 23: '叹气', 24: '唱歌',
+    32: '哼歌', 35: '口哨', 36: '呼吸声', 38: '打呼噜', 42: '咳嗽', 44: '打喷嚏', 53: '打嗝', 54: '打嗝', 58: '拍手',
+    65: '嘈杂人声', 67: '动物叫声', 68: '宠物叫声', 69: '狗叫', 70: '狗叫', 72: '嚎叫', 76: '猫叫', 77: '猫打呼噜', 78: '喵喵叫',
+    106: '鸟叫', 108: '鸟叫', 132: '音乐', 266: '摇篮曲', 277: '风声', 283: '雨声', 294: '车声', 301: '汽车声', 348: '门响',
+    353: '敲门声', 358: '锅碗瓢盆', 359: '餐具声', 362: '微波炉', 363: '料理机', 364: '水龙头', 365: '洗碗声', 366: '放洗澡水',
+    367: '吹风机', 368: '冲马桶', 371: '吸尘器', 378: '打字声', 382: '闹钟', 383: '电话', 385: '铃声', 402: '钟表滴答',
+    406: '风扇', 407: '空调', 494: '很安静', 507: '杂音', 509: '电流杂音', 514: '白噪音', 518: '电视声', 519: '收音机'
+  };
+
+  /* ---------- log-mel 特征（与 YAMNet 官方实现一致） ---------- */
+  var HANN = new Float32Array(WIN);
+  for (var n0 = 0; n0 < WIN; n0++) HANN[n0] = 0.5 - 0.5 * Math.cos(2 * Math.PI * n0 / WIN);
+
+  var MEL = (function () {
+    function mel(f) { return 1127 * Math.log(1 + f / 700); }
+    var m = new Float32Array(NBIN * NMEL), lo = mel(125), hi = mel(7500), e = [];
+    for (var i = 0; i < NMEL + 2; i++) e.push(lo + (hi - lo) * i / (NMEL + 1));
+    for (var b = 1; b < NBIN; b++) {
+      var fm = mel((SR / 2) * b / (NBIN - 1));
+      for (var k = 0; k < NMEL; k++) {
+        var w = Math.min((fm - e[k]) / (e[k + 1] - e[k]), (e[k + 2] - fm) / (e[k + 2] - e[k + 1]));
+        if (w > 0) m[b * NMEL + k] = w;
+      }
+    }
+    return m;
+  })();
+
+  var REV = new Uint16Array(NFFT), TC = new Float64Array(NFFT / 2), TS = new Float64Array(NFFT / 2);
+  (function () {
+    for (var i = 0; i < NFFT; i++) {
+      var r = 0;
+      for (var b = 0; b < 9; b++) if (i & (1 << b)) r |= 1 << (8 - b);
+      REV[i] = r;
+    }
+    for (var k = 0; k < NFFT / 2; k++) { TC[k] = Math.cos(2 * Math.PI * k / NFFT); TS[k] = -Math.sin(2 * Math.PI * k / NFFT); }
+  })();
+
+  function fft(re, im) {
+    var i, j, t;
+    for (i = 0; i < NFFT; i++) {
+      j = REV[i];
+      if (j > i) { t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; }
+    }
+    for (var size = 2; size <= NFFT; size <<= 1) {
+      var half = size >> 1, step = NFFT / size;
+      for (i = 0; i < NFFT; i += size) {
+        for (j = 0; j < half; j++) {
+          var k = j * step, a = i + j, b = a + half;
+          var tr = re[b] * TC[k] - im[b] * TS[k];
+          var ti = re[b] * TS[k] + im[b] * TC[k];
+          re[b] = re[a] - tr; im[b] = im[a] - ti;
+          re[a] += tr; im[a] += ti;
+        }
+      }
+    }
+  }
+
+  function paddedLength(len) {
+    var min = 15600, hop = 7680, n = Math.max(len, min);
+    return min + Math.ceil((n - min) / hop) * hop;
+  }
+
+  function logMel(x) {
+    var total = paddedLength(x.length);
+    var frames = 1 + Math.floor((total - WIN) / HOP);
+    var out = new Float32Array(frames * NMEL);
+    var re = new Float64Array(NFFT), im = new Float64Array(NFFT), mag = new Float64Array(NBIN);
+    for (var f = 0; f < frames; f++) {
+      var off = f * HOP, i, b;
+      for (i = 0; i < NFFT; i++) {
+        var j = off + i;
+        re[i] = (i < WIN && j < x.length) ? x[j] * HANN[i] : 0;
+        im[i] = 0;
+      }
+      fft(re, im);
+      for (b = 0; b < NBIN; b++) mag[b] = Math.sqrt(re[b] * re[b] + im[b] * im[b]);
+      for (var k = 0; k < NMEL; k++) {
+        var acc = 0;
+        for (b = 1; b < NBIN; b++) acc += mag[b] * MEL[b * NMEL + k];
+        out[f * NMEL + k] = Math.log(acc + 0.001);
+      }
+    }
+    return { data: out, frames: frames };
+  }
+
+  function toPatches(spec) {
+    var n = 1 + Math.floor((spec.frames - PATCH) / PATCH_HOP);
+    var d = new Float32Array(n * PATCH_SIZE);
+    for (var p = 0; p < n; p++) d.set(spec.data.subarray(p * PATCH_HOP * NMEL, p * PATCH_HOP * NMEL + PATCH_SIZE), p * PATCH_SIZE);
+    return { data: d, n: n };
+  }
+
+  /* ---------- YAMNet 模型（BN 已折叠进卷积，int8 权重） ---------- */
+  async function fetchBuffer(fetchImpl, url, total, onProgress) {
+    var res = await fetchImpl(url);
+    if (!res.ok) throw new Error('下载失败 ' + res.status);
+    if (!res.body || !res.body.getReader || !onProgress) return await res.arrayBuffer();
+    var reader = res.body.getReader(), chunks = [], got = 0;
+    for (;;) {
+      var r = await reader.read();
+      if (r.done) break;
+      chunks.push(r.value); got += r.value.length;
+      onProgress(Math.min(1, got / total));
+    }
+    var buf = new Uint8Array(got), pos = 0;
+    for (var i = 0; i < chunks.length; i++) { buf.set(chunks[i], pos); pos += chunks[i].length; }
+    return buf.buffer;
+  }
+
+  function buildLayers(tf, man, buf) {
+    return man.tensors.map(function (t) {
+      var q = new Int8Array(buf, t.q[0], t.q[1]);
+      var scale = new Float32Array(buf, t.scale[0], t.scale[1] / 4);
+      var bias = new Float32Array(buf, t.bias[0], t.bias[1] / 4);
+      var w = new Float32Array(q.length), m = scale.length;
+      for (var i = 0; i < q.length; i++) w[i] = q[i] * scale[i % m];
+      return { kind: t.kind, stride: t.stride, k: tf.tensor(w, t.shape), b: tf.tensor1d(bias) };
+    });
+  }
+
+  async function runModel(model, data, n) {
+    var tf = model.tf, out = new Float32Array(n * NCLS), B = 8;
+    for (var s = 0; s < n; s += B) {
+      var m = Math.min(B, n - s);
+      var y = tf.tidy(function () {
+        var x = tf.tensor4d(data.subarray(s * PATCH_SIZE, (s + m) * PATCH_SIZE), [m, PATCH, NMEL, 1]);
+        model.layers.forEach(function (L) {
+          if (L.kind === 'conv') x = tf.relu(tf.add(tf.conv2d(x, L.k, L.stride, 'same'), L.b));
+          else if (L.kind === 'dw') x = tf.relu(tf.add(tf.depthwiseConv2d(x, L.k, L.stride, 'same'), L.b));
+          else x = tf.sigmoid(tf.add(tf.matMul(tf.mean(x, [1, 2]), L.k), L.b));
+        });
+        return x;
+      });
+      out.set(await y.data(), s * NCLS);
+      y.dispose();
+    }
+    return out;
+  }
+
+  async function selfTest(model) {
+    var p = toPatches(logMel(new Float32Array(15600)));
+    var sc = await runModel(model, p.data, 1), best = 0;
+    for (var i = 0; i < NCLS; i++) {
+      if (!isFinite(sc[i])) return false;
+      if (sc[i] > sc[best]) best = i;
+    }
+    return best === I_SILENCE;
+  }
+
+  function fromBase64(text) {
+    var bin = atob(text.replace(/\s+/g, '')), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out.buffer;
+  }
+
+  async function loadModel(tf, base, onProgress, fetchImpl, binName) {
+    var f = fetchImpl || fetch;
+    binName = binName || 'yamnet-weights.bin';
+    var man = await (await f(base + 'yamnet-weights.json')).json();
+    var total = 0;
+    man.tensors.forEach(function (t) { total = Math.max(total, t.bias[0] + t.bias[1]); });
+    // 只能放文本文件的托管环境可以用 base64 版（*.b64.txt）
+    var isB64 = /\.b64\.txt$/.test(binName);
+    var buf = await fetchBuffer(f, base + binName, isB64 ? Math.ceil(total / 3) * 4 : total, onProgress);
+    if (isB64) buf = fromBase64(new TextDecoder().decode(buf));
+    var ok = false;
+    try { ok = await tf.setBackend('webgl'); } catch (e) { ok = false; }
+    if (!ok) await tf.setBackend('cpu');
+    await tf.ready();
+    var model = { tf: tf, layers: buildLayers(tf, man, buf) };
+    if (!(await selfTest(model)) && tf.getBackend() !== 'cpu') {
+      model.layers.forEach(function (L) { L.k.dispose(); L.b.dispose(); });
+      await tf.setBackend('cpu');
+      model.layers = buildLayers(tf, man, buf);
+      if (!(await selfTest(model))) throw new Error('模型自检没通过');
+    }
+    model.backend = tf.getBackend();
+    return model;
+  }
+
+  /* ---------- 声学特征：音量、音调（McLeod 音高） ---------- */
+  function pitchAt(x, off, F) {
+    var minLag = 13, maxLag = 80, nsdf = new Float64Array(maxLag + 2), tau, i;
+    for (tau = 0; tau <= maxLag + 1; tau++) {
+      var r = 0, m = 0;
+      for (i = 0; i + tau < F; i++) { var a = x[off + i], b = x[off + i + tau]; r += a * b; m += a * a + b * b; }
+      nsdf[tau] = m > 0 ? 2 * r / m : 0;
+    }
+    var peaks = [], pos = false, best = -1, bestV = 0, gmax = 0;
+    for (tau = 1; tau <= maxLag; tau++) {
+      if (!pos && nsdf[tau - 1] <= 0 && nsdf[tau] > 0) pos = true;
+      if (pos) {
+        if (nsdf[tau] > bestV) { bestV = nsdf[tau]; best = tau; }
+        if (nsdf[tau] <= 0 || tau === maxLag) {
+          if (best > 0) { peaks.push([best, bestV]); gmax = Math.max(gmax, bestV); }
+          pos = false; best = -1; bestV = 0;
+        }
+      }
+    }
+    for (i = 0; i < peaks.length; i++) {
+      var t = peaks[i][0], v = peaks[i][1];
+      if (t >= minLag && v >= 0.85 * gmax && v >= 0.55) {
+        var a1 = nsdf[t - 1], b1 = nsdf[t], c1 = nsdf[t + 1], den = a1 - 2 * b1 + c1;
+        var tt = den !== 0 ? t + 0.5 * (a1 - c1) / den : t;
+        var f0 = SR / tt;
+        return (f0 >= 200 && f0 <= 1250) ? f0 : 0;
+      }
+    }
+    return 0;
+  }
+
+  function pct(arr, q) {
+    if (!arr.length) return null;
+    var s = arr.slice().sort(function (a, b) { return a - b; });
+    return s[Math.min(s.length - 1, Math.floor(q * (s.length - 1) + 0.5))];
+  }
+
+  function acoustic(x, inCry) {
+    var F = 640, H = 320, nf = Math.max(0, 1 + Math.floor((x.length - F) / H));
+    var db = new Float32Array(nf), f, i;
+    for (f = 0; f < nf; f++) {
+      var s = 0;
+      for (i = 0; i < F; i++) { var v = x[f * H + i]; s += v * v; }
+      db[f] = 10 * Math.log10(s / F + 1e-12);
+    }
+    var floorDb = pct(Array.prototype.slice.call(db), 0.1);
+    var thr = Math.max((floorDb == null ? -90 : floorDb) + 10, -62);
+    var act = [], f0s = [], sel = 0;
+    for (f = 0; f < nf; f++) {
+      if (db[f] <= thr) continue;
+      act.push(db[f]);
+      if (inCry && !inCry((f * H + F / 2) / SR)) continue;
+      sel++;
+      if (sel % 2) { var p = pitchAt(x, f * H, F); if (p) f0s.push(p); }
+    }
+    return {
+      loudDb: pct(act, 0.9),
+      activeFrac: nf ? act.length / nf : 0,
+      pitchHz: pct(f0s, 0.5),
+      pitchHi: pct(f0s, 0.9),
+      voiced: f0s.length
+    };
+  }
+
+  /* ---------- 一次完整分析 ---------- */
+  async function analyze(model, x) {
+    if (x.length > 30 * SR) x = x.subarray(0, 30 * SR);
+    var pt = toPatches(logMel(x)), n = pt.n;
+    var sc = await runModel(model, pt.data, n);
+    var curve = [], mean = new Float64Array(NCLS), cryMax = 0, cryN = 0, catMax = 0, p, k;
+    for (p = 0; p < n; p++) {
+      var o = p * NCLS, c = Math.max(sc[o + I_BABY], 0.6 * sc[o + I_SOB]);
+      curve.push(c);
+      if (c > cryMax) cryMax = c;
+      if (c >= TH_CRY) cryN++;
+      catMax = Math.max(catMax, sc[o + I_CAT], sc[o + I_MEOW]);
+      for (k = 0; k < NCLS; k++) mean[k] += sc[o + k] / n;
+    }
+    var order = [];
+    for (k = 0; k < NCLS; k++) if (!CRY_SET[k] && !GENERIC[k] && ZH[k]) order.push(k);
+    order.sort(function (a, b) { return mean[b] - mean[a]; });
+    var others = order.slice(0, 3).filter(function (k2) { return mean[k2] >= 0.12; }).map(function (k2) { return ZH[k2]; });
+    var inCry = cryN ? function (t) {
+      for (var q = 0; q < n; q++) if (curve[q] >= TH_CRY && t >= q * 0.48 && t < q * 0.48 + 0.96) return true;
+      return false;
+    } : null;
+    var ac = acoustic(x, inCry);
+    var likelyCat = catMax >= 0.3 && catMax > cryMax;
+    var verdict = cryMax >= TH_CRY ? 'cry' : cryMax >= TH_MAYBE ? 'maybe' : 'none';
+    // 猫叫和宝宝哭声很像：猫叫分更高时降一级
+    if (likelyCat && verdict === 'cry') verdict = 'maybe';
+    return {
+      verdict: verdict,
+      cryScore: cryMax,
+      cryFrac: n ? cryN / n : 0,
+      likelyCat: likelyCat,
+      quiet: ac.loudDb == null || ac.loudDb < -58 || ac.activeFrac < 0.04,
+      others: others,
+      loudDb: ac.loudDb,
+      pitchHz: ac.pitchHz,
+      pitchHi: ac.pitchHi,
+      seconds: x.length / SR,
+      patches: n
+    };
+  }
+
+  /* ---------- 结合时间记录推测原因 ---------- */
+  var AGES = {
+    '0-3': { name: '0–3个月', feed: [120, 180], feedText: '2–3 小时', wake: [45, 90], wakeText: '45–90 分钟' },
+    '3-6': { name: '3–6个月', feed: [180, 240], feedText: '3–4 小时', wake: [90, 150], wakeText: '1.5–2.5 小时' },
+    '6-12': { name: '6–12个月', feed: [180, 240], feedText: '3–4 小时', wake: [120, 210], wakeText: '2–3.5 小时' },
+    '12+': { name: '1岁以上', feed: [180, 240], feedText: '3–4 小时', wake: [180, 300], wakeText: '3–5 小时' }
+  };
+  var REASONS = {
+    hungry: { name: '饿了', icon: 'i-bottle', mood: 'hungry' },
+    tired: { name: '困了', icon: 'i-moon', mood: 'tired' },
+    diaper: { name: '尿布不舒服', icon: 'i-diaper', mood: 'diaper' },
+    gas: { name: '胀气、肚子不舒服', icon: 'i-tummy', mood: 'gas' },
+    comfort: { name: '想要抱抱', icon: 'i-heart', mood: 'comfort' }
+  };
+  var TIPS = {
+    hungry: ['看看宝宝有没有转头找奶、咂嘴、吃手，这些都是饿了的信号。', '按需喂奶就好。哭得太凶时先抱起来哄一哄，平静一点再喂，更容易含住。', '喂完点一下「上次喂奶 · 刚刚」，下次猜得更准。'],
+    tired: ['把灯调暗、说话放轻，先别逗他玩。', '抱着轻轻摇，在耳边发「嘘——」的声音，或者开白噪音。', '睡着后让宝宝仰面睡在自己的小床上，床上别放枕头、厚被子和玩偶。'],
+    diaper: ['摸一摸、打开看看尿布，湿了或有便便就换。', '看看小屁屁有没有发红，红了涂一层护臀膏。', '顺便检查衣服是不是太紧，有没有线头、标签扎到。'],
+    gas: ['竖着抱起来，轻轻拍背拍嗝。', '让宝宝趴在你的前臂上（飞机抱），手掌轻贴着肚子。', '宝宝醒着时，顺时针揉揉肚子，或者握着小腿做蹬自行车。', '下次喂奶注意含接；用奶瓶时让奶嘴里充满奶，少吸进空气。'],
+    comfort: ['抱起来贴着你，轻声说话或者哼首歌。', '摸摸后脖子：出汗就少穿一件，凉凉的就加一件。', '试试「5S 安抚法」：包裹、侧抱、嘘声、轻摇、吸吮。侧抱只用来哄，睡觉一定要仰睡。']
+  };
+
+  function dur(min) {
+    if (min < 1) return '不到 1 分钟';
+    if (min < 60) return Math.round(min) + ' 分钟';
+    var h = Math.floor(min / 60), m = Math.round(min % 60);
+    if (m === 60) { h++; m = 0; }
+    return h + ' 小时' + (m ? ' ' + m + ' 分' : '');
+  }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function urgency(res) {
+    // 按 Donate-a-cry 和 ESC-50 的真实哭声校准：音调中位数约 430–460 Hz，九成在 350–575 Hz
+    var loudN = res.loudDb == null ? 0.3 : clamp((res.loudDb + 35) / 25, 0, 1);
+    var pitchN = res.pitchHz == null ? 0.3 : clamp((res.pitchHz - 350) / 250, 0, 1);
+    var u = 0.3 * loudN + 0.3 * pitchN + 0.4 * res.cryFrac;
+    var level = u < 0.38 ? 'calm' : u < 0.62 ? 'fussy' : 'urgent';
+    return {
+      value: u,
+      level: level,
+      text: { calm: '不太急', fussy: '有点急', urgent: '哭得很急' }[level],
+      shrill: res.pitchHz != null && res.pitchHz >= 650 && res.cryFrac >= 0.4
+    };
+  }
+
+  function rankReasons(res, ctx, u) {
+    var a = AGES[ctx.age] || AGES['0-3'], R = [], s, why, d;
+    var fm = ctx.feedMin, wm = ctx.wakeMin, dm = ctx.diaperMin;
+
+    if (fm == null) { s = ctx.age === '0-3' ? 0.45 : 0.35; why = ctx.age === '0-3' ? '没记喂奶时间。3 个月内的宝宝哭，最常见的原因就是饿。' : '没记喂奶时间，记一下会猜得更准。'; }
+    else {
+      d = dur(fm);
+      if (fm < 40) { s = 0.08; why = '刚喂过（' + d + '前），一般不是饿。'; }
+      else if (fm < a.feed[0] * 0.75) { s = 0.28; why = '距上次喂奶 ' + d + '，' + a.name + '一般 ' + a.feedText + '吃一次，还没到点。'; }
+      else if (fm < a.feed[0]) { s = 0.55; why = '距上次喂奶 ' + d + '，快到吃奶的时间了（' + a.name + '一般 ' + a.feedText + '一次）。'; }
+      else if (fm < a.feed[1]) { s = 0.78; why = '距上次喂奶 ' + d + '，到吃奶的时间了（' + a.name + '一般 ' + a.feedText + '一次）。'; }
+      else { s = 0.9; why = '距上次喂奶已经 ' + d + '，超过了平时的间隔（' + a.feedText + '）。'; }
+    }
+    R.push({ key: 'hungry', score: s, why: why });
+
+    if (wm == null) { s = 0.3; why = '没记睡醒时间。醒得太久，宝宝会犯困闹觉。'; }
+    else {
+      d = dur(wm);
+      if (wm < a.wake[0] * 0.6) { s = 0.1; why = '刚睡醒 ' + d + '，一般还不困。'; }
+      else if (wm < a.wake[0]) { s = 0.35; why = '醒了 ' + d + '，' + a.name + '一般醒 ' + a.wakeText + '就会困。'; }
+      else if (wm < a.wake[1]) { s = 0.65; why = '醒了 ' + d + '，差不多到犯困的时候了（' + a.name + '一般醒 ' + a.wakeText + '）。'; }
+      else { s = 0.85; why = '已经醒了 ' + d + '，超过这个月龄一般能醒的时间（' + a.wakeText + '），容易困过头闹觉。'; }
+    }
+    if (u.level !== 'urgent' && res.cryFrac < 0.7) { s += 0.07; why += '哭声一阵一阵的，有点像闹觉。'; }
+    R.push({ key: 'tired', score: s, why: why });
+
+    if (dm == null) { s = 0.25; why = '没记换尿布时间，可以先摸一下尿布。'; }
+    else {
+      d = dur(dm);
+      if (dm < 60) { s = 0.08; why = d + '前刚换过尿布。'; }
+      else if (dm < 120) { s = 0.3; why = d + '前换的尿布，可以摸一下是不是湿了。'; }
+      else if (dm < 180) { s = 0.55; why = '尿布 ' + d + '没换了，可能湿了或者有便便。'; }
+      else { s = 0.72; why = '尿布已经 ' + d + '没换了。'; }
+    }
+    R.push({ key: 'diaper', score: s, why: why });
+
+    var parts = [];
+    s = 0.15;
+    if (fm != null && fm <= 60) { s += 0.35; parts.push('刚吃完奶 ' + dur(fm) + '，容易吸进空气胀气。'); }
+    if (ctx.age === '0-3') {
+      s += 0.1; parts.push('3 个月内宝宝肠胃还没长好，胀气很常见。');
+      if (ctx.hour >= 18 || ctx.hour < 1) { s += 0.08; parts.push('傍晚到半夜是肠绞痛哭闹最多的时候。'); }
+    }
+    if (u.level === 'urgent') { s += 0.15; parts.push('哭得很急，可能是肚子不舒服。'); }
+    R.push({ key: 'gas', score: Math.min(s, 0.85), why: parts.length ? parts.join('') : '没有明显的胀气迹象。' });
+
+    var met = (fm != null && fm < 60 ? 1 : 0) + (dm != null && dm < 60 ? 1 : 0) + (wm != null && wm < a.wake[0] * 0.6 ? 1 : 0);
+    s = 0.22; why = '宝宝也会因为想被抱、太冷太热、环境太吵而哭。';
+    if (met >= 2) { s += 0.3; why = '吃、睡、尿布都刚照顾过，可能就是想要抱抱、要安全感。'; }
+    if (u.level === 'calm') { s += 0.1; why += '哭得不急，像在找人。'; }
+    R.push({ key: 'comfort', score: s, why: why });
+
+    R.sort(function (x, y) { return y.score - x.score; });
+    return R.map(function (r, i) {
+      var meta = REASONS[r.key];
+      return {
+        key: r.key, name: meta.name, icon: meta.icon, mood: meta.mood,
+        score: Math.round(r.score * 100) / 100,
+        tag: i === 0 ? '最可能' : r.score >= 0.5 ? '也有可能' : r.score >= 0.28 ? '有可能' : '不太像',
+        why: r.why
+      };
+    });
+  }
+
+  function explain(res, ctx) {
+    var u = urgency(res), out = { verdict: res.verdict, urgency: u, reasons: [], tips: null, alert: '' };
+    var pct100 = Math.round(res.cryScore * 100);
+    out.scoreText = '像哭声的程度 ' + pct100 + '%';
+    out.scoreValue = res.cryScore;
+    out.stats = [
+      { label: '哭得急不急', value: res.verdict === 'none' ? '—' : u.text, cls: res.verdict === 'none' ? '' : 'u-' + u.level },
+      { label: '音调（一般 350–550）', value: res.pitchHz ? Math.round(res.pitchHz) + ' Hz' : '—', cls: '' },
+      { label: '哭声占比', value: res.verdict === 'none' ? '0%' : Math.round(res.cryFrac * 100) + '%', cls: '' }
+    ];
+    if (res.verdict === 'none') {
+      out.title = '没听到明显的宝宝哭声';
+      out.mood = 'none';
+      if (res.quiet) out.sub = '声音太小了，靠近一点再试试。';
+      else if (res.likelyCat) out.sub = '听起来更像猫叫。';
+      else if (res.others.length) out.sub = '听到的更像：' + res.others.join('、') + '。';
+      else out.sub = '换个安静点的地方再听一次。';
+      out.tipsTitle = '这样录更准';
+      out.tipList = ['把手机放到离宝宝 30–50 厘米的地方。', '先关掉电视、音乐和风扇，录的时候大人别说话。', '宝宝哭的时候再点「听一听」，至少录满 5 秒。'];
+      return out;
+    }
+    out.title = res.verdict === 'cry' ? '像宝宝在哭' : '可能有哭声，不太确定';
+    out.sub = res.verdict === 'cry' ? '下面是结合你的记录推测的可能原因。' : '声音不太清楚，下面的原因仅供参考。';
+    if (res.likelyCat) {
+      out.title = '可能是宝宝，也可能是猫叫';
+      out.sub = '这两种声音很像，先确认一下是不是宝宝在哭。';
+    } else if (res.others.length && res.verdict === 'maybe') out.sub += '还听到：' + res.others.join('、') + '。';
+    out.reasons = rankReasons(res, ctx, u);
+    var top = out.reasons[0];
+    out.mood = top.mood;
+    out.tipsTitle = '试试这样哄（针对「' + top.name + '」）';
+    out.tipList = TIPS[top.key];
+    if (u.shrill) out.alert = '哭声特别尖。如果同时发烧、没精神，或者一直哄不好，请尽快看医生。';
+    return out;
+  }
+
+  return {
+    SR: SR, logMel: logMel, toPatches: toPatches, loadModel: loadModel, runModel: runModel,
+    analyze: analyze, acoustic: acoustic, explain: explain, urgency: urgency, dur: dur, AGES: AGES, REASONS: REASONS
+  };
+})();
+/*CORE-END*/
+</script>
+
+<script>
+/* ===== 页面逻辑 ===== */
+(function () {
+  'use strict';
+  var KEY = 'babyCryTranslator.v1';
+  var $ = function (id) { return document.getElementById(id); };
+  var AC = window.AudioContext || window.webkitAudioContext;
+
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 存不了也能用 */ } }
+  var S = load();
+  if (!S.age) S.age = '0-3';
+  if (!Array.isArray(S.history)) S.history = [];
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  /* --- 小团子 --- */
+  $('noJs').hidden = true;
+  var heroFace = $('heroFace').querySelector('svg');
+  function mascot(mood) {
+    var svg = heroFace.cloneNode(true);
+    svg.setAttribute('data-mood', mood || 'idle');
+    return svg;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mascot]'), function (el) { if (!el.querySelector('svg')) el.appendChild(mascot(el.getAttribute('data-mascot'))); });
+  function setMood(m) { heroFace.setAttribute('data-mood', m); }
+
+  /* --- 音量条 --- */
+  var meter = $('meter'), BARS = 28, bars = [];
+  for (var i = 0; i < BARS; i++) { var b = document.createElement('i'); meter.appendChild(b); bars.push(b); }
+  var levels = [];
+  function pushLevel(v) {
+    levels.push(v); if (levels.length > BARS) levels.shift();
+    for (var j = 0; j < BARS; j++) {
+      var lv = levels[levels.length - BARS + j];
+      bars[j].style.transform = 'scaleY(' + (lv == null ? 0.14 : Math.max(0.14, Math.min(1, lv))) + ')';
+    }
+  }
+  function resetMeter() { levels = []; meter.classList.remove('is-on'); bars.forEach(function (x) { x.style.transform = 'scaleY(.14)'; }); }
+
+  /* --- 状态文字 --- */
+  function setStatus(text, progress, isError) {
+    $('statusText').textContent = text;
+    $('status').classList.toggle('is-error', !!isError);
+    if (progress != null) $('pbar').style.width = Math.round(progress * 100) + '%';
+  }
+  function setHero(title, sub) { $('heroTitle').textContent = title; if (sub != null) $('heroSub').textContent = sub; }
+  function showNotice(text) { var n = $('notice'); n.textContent = text; n.hidden = !text; }
+
+  if (/MicroMessenger|aweme|Douyin|Kuaishou|xiaohongshu|XHS|Weibo|QQ\//i.test(navigator.userAgent)) $('inappNotice').hidden = false;
+
+  /* --- 加载 TF.js 和模型 --- */
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src; s.async = true;
+      s.onload = function () { window.tf ? resolve() : reject(new Error('no tf')); };
+      s.onerror = function () { s.remove(); reject(new Error('load ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  async function loadTf() {
+    if (window.tf) return window.tf;
+    for (var k = 0; k < CONFIG.tfjs.length; k++) {
+      try { await loadScript(CONFIG.tfjs[k]); return window.tf; } catch (e) { /* 换下一个源 */ }
+    }
+    throw new Error('TF.js 加载失败');
+  }
+  // 直接打开本地 html 文件时，浏览器不让页面读同目录的模型文件
+  var IS_FILE = location.protocol === 'file:';
+  var FILE_MSG = '你现在是直接打开的 html 文件，读不到识别模型和示例哭声。请把整个文件夹放到网站上（比如 GitHub Pages），再用手机浏览器打开那个网址。';
+  var engine = null, enginePromise = null;
+  function ensureEngine() {
+    if (engine) return Promise.resolve(engine);
+    if (enginePromise) return enginePromise;
+    if (IS_FILE) {
+      setStatus('需要用网址打开才能用', 0, true);
+      showNotice(FILE_MSG);
+      return Promise.reject(new Error(FILE_MSG));
+    }
+    setStatus('小耳朵准备中…', 0.05);
+    enginePromise = loadTf().then(function (tf) {
+      setStatus('正在下载识别模型（3.8MB）…', 0.15);
+      return CRY.loadModel(tf, CONFIG.modelBase, function (p) { setStatus('正在下载识别模型 ' + Math.round(p * 100) + '%', 0.15 + 0.8 * p); }, null, CONFIG.modelBin);
+    }).then(function (m) {
+      engine = m;
+      setStatus('小耳朵准备好了', 1);
+      return m;
+    }).catch(function (e) {
+      enginePromise = null;
+      $('statusText').innerHTML = '模型没加载出来，检查一下网络。<button class="linkbtn" type="button" data-act="retry">重试</button>';
+      $('status').classList.add('is-error');
+      throw e;
+    });
+    return enginePromise;
+  }
+
+  /* --- 音频工具 --- */
+  function mixdown(buf) {
+    var n = buf.numberOfChannels, len = buf.length, out = new Float32Array(len);
+    for (var c = 0; c < n; c++) { var d = buf.getChannelData(c); for (var k = 0; k < len; k++) out[k] += d[k] / n; }
+    return out;
+  }
+  function linearResample(x, sr) {
+    var ratio = sr / 16000, n = Math.floor(x.length / ratio), out = new Float32Array(n), w = Math.max(1, Math.round(ratio));
+    for (var k = 0; k < n; k++) {
+      var c = k * ratio, a = Math.floor(c), s = 0, cnt = 0;
+      for (var j = a; j < a + w && j < x.length; j++) { s += x[j]; cnt++; }
+      out[k] = cnt ? s / cnt : 0;
+    }
+    return out;
+  }
+  async function to16k(x, sr) {
+    if (sr === 16000) return x;
+    try {
+      var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      var oc = new OAC(1, Math.ceil(x.length * 16000 / sr), 16000);
+      var b = oc.createBuffer(1, x.length, sr);
+      b.getChannelData(0).set(x);
+      var src = oc.createBufferSource();
+      src.buffer = b; src.connect(oc.destination); src.start(0);
+      var r = await oc.startRendering();
+      return r.getChannelData(0).slice();
+    } catch (e) {
+      return linearResample(x, sr);
+    }
+  }
+  function decode(arrayBuf) {
+    var ctx = new AC();
+    return new Promise(function (resolve, reject) {
+      ctx.decodeAudioData(arrayBuf, resolve, function (e) { reject(e || new Error('decode')); });
+    }).then(function (buf) { if (ctx.close) ctx.close(); return buf; }, function (e) { if (ctx.close) ctx.close(); throw e; });
+  }
+
+  /* --- 录音 --- */
+  var rec = null;
+  async function startRecording() {
+    var ctx = new AC();
+    var stream;
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw { name: 'Insecure' };
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+    } catch (e) {
+      if (ctx.close) ctx.close();
+      throw e;
+    }
+    if (ctx.resume) await ctx.resume();
+    var src = ctx.createMediaStreamSource(stream);
+    var an = ctx.createAnalyser(); an.fftSize = 1024;
+    var proc = ctx.createScriptProcessor(4096, 1, 1);
+    var chunks = [], tdata = new Float32Array(an.fftSize), raf = 0, t0 = performance.now(), dur = CONFIG.recordSeconds;
+    var finish;
+    var done = new Promise(function (r) { finish = r; });
+    proc.onaudioprocess = function (ev) { chunks.push(new Float32Array(ev.inputBuffer.getChannelData(0))); };
+    src.connect(an); src.connect(proc); proc.connect(ctx.destination);
+    meter.classList.add('is-on');
+    function tick() {
+      an.getFloatTimeDomainData(tdata);
+      var s = 0; for (var k = 0; k < tdata.length; k++) s += tdata[k] * tdata[k];
+      var db = 10 * Math.log10(s / tdata.length + 1e-10);
+      pushLevel((db + 60) / 50);
+      var left = Math.max(0, dur - (performance.now() - t0) / 1000);
+      setHero('正在听… 还剩 ' + Math.ceil(left) + ' 秒', '再点一下可以提前结束');
+      if (left <= 0) stop(); else raf = requestAnimationFrame(tick);
+    }
+    function stop() {
+      if (!rec) return;
+      cancelAnimationFrame(raf);
+      try { src.disconnect(); proc.disconnect(); an.disconnect(); } catch (e) { /* 已断开 */ }
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      var len = 0; chunks.forEach(function (c) { len += c.length; });
+      var data = new Float32Array(len), pos = 0;
+      chunks.forEach(function (c) { data.set(c, pos); pos += c.length; });
+      var sr = ctx.sampleRate;
+      if (ctx.close) ctx.close();
+      rec = null;
+      resetMeter();
+      finish({ data: data, sampleRate: sr, seconds: (performance.now() - t0) / 1000 });
+    }
+    rec = { stop: stop, t0: t0 };
+    raf = requestAnimationFrame(tick);
+    return done;
+  }
+
+  /* --- 分析并显示 --- */
+  var busy = false;
+  function minsSince(t) { return t ? Math.max(0, (Date.now() - t) / 60000) : null; }
+  function currentCtx() {
+    return { age: S.age, feedMin: minsSince(S.feedAt), wakeMin: minsSince(S.wakeAt), diaperMin: minsSince(S.diaperAt), hour: new Date().getHours() };
+  }
+  function setBusy(on) {
+    busy = on;
+    $('listenBtn').classList.toggle('is-busy', on && !rec);
+  }
+
+  async function analyzeAndShow(x, sr, source) {
+    setBusy(true);
+    setMood('think');
+    setHero('正在分析…', '在你的手机里算，不上传');
+    try {
+      var m = await ensureEngine();
+      var x16 = await to16k(x, sr);
+      var res = await CRY.analyze(m, x16);
+      var view = CRY.explain(res, currentCtx());
+      renderResult(view, { when: new Date(), example: false, source: source });
+      S.history.unshift({ t: Date.now(), v: res.verdict, r: view.reasons.length ? view.reasons[0].key : '', u: view.urgency.level, s: Math.round(res.cryScore * 100) });
+      S.history = S.history.slice(0, 30);
+      save();
+      renderDiary();
+      setMood('idle');
+      setHero(res.verdict === 'none' ? '这次没听到明显的哭声' : '听完啦，结果在下面', '想再听一次就再点一下');
+      var r = $('result');
+      if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      setMood('idle');
+      setHero('这次没分析成功', '可以再点一下试试');
+      showNotice(IS_FILE ? FILE_MSG : '分析出错了：' + (e && e.message ? e.message : '未知原因') + '。换个浏览器或者刷新页面再试。');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onListen() {
+    if (rec) {
+      if ((performance.now() - rec.t0) > 1500) rec.stop();
+      return;
+    }
+    if (busy) return;
+    if (IS_FILE) { showNotice(FILE_MSG); return; }
+    showNotice('');
+    ensureEngine().catch(function () {});
+    var got;
+    try {
+      setMood('listen');
+      $('listenBtn').classList.add('is-rec');
+      $('listenBtn').setAttribute('aria-label', '正在听，点一下提前结束');
+      var p = startRecording();
+      got = await p;
+    } catch (e) {
+      setMood('idle');
+      setHero('宝宝哭了？点一下，我来听听', '手机离宝宝 30–50 厘米，听 8 秒就好');
+      var inFrame = window.self !== window.top;
+      if (e && e.name === 'Insecure') showNotice('录音需要用 https 网址打开。可以先用「上传录音」或「试听示例哭声」。');
+      else if (inFrame) showNotice('这个预览页面用不了麦克风。可以先点「试听示例哭声」或「上传录音」；部署到自己的 https 网址后就能直接录。');
+      else showNotice('没拿到麦克风权限。请在浏览器设置里允许这个网页使用麦克风，或者先用「上传录音」。');
+      return;
+    } finally {
+      $('listenBtn').classList.remove('is-rec');
+      $('listenBtn').setAttribute('aria-label', '开始听宝宝哭声');
+    }
+    if (got.seconds < 1.5 || got.data.length < got.sampleRate) {
+      setMood('idle');
+      setHero('录得太短了', '再点一下，至少听 2 秒');
+      return;
+    }
+    analyzeAndShow(got.data, got.sampleRate, 'mic');
+  }
+
+  var demoAudio = null;
+  async function onDemo() {
+    if (busy || rec) return;
+    if (IS_FILE) { showNotice(FILE_MSG); return; }
+    showNotice('');
+    setBusy(true);
+    setMood('cry');
+    setHero('正在播放示例哭声…', '一个 4–8 周宝宝的真实哭声录音');
+    try {
+      ensureEngine().catch(function () {});
+      var resp = await fetch(CONFIG.demoUrl);
+      if (!resp.ok) throw new Error('示例下载失败');
+      var ab = await resp.arrayBuffer();
+      try {
+        if (demoAudio) demoAudio.pause();
+        demoAudio = new Audio(URL.createObjectURL(new Blob([ab.slice(0)], { type: 'audio/wav' })));
+        var pl = demoAudio.play();
+        if (pl && pl.catch) pl.catch(function () {});
+      } catch (e) { /* 播放不了也继续分析 */ }
+      var buf = await decode(ab);
+      setBusy(false);
+      await analyzeAndShow(mixdown(buf), buf.sampleRate, 'demo');
+    } catch (e) {
+      setBusy(false);
+      setMood('idle');
+      showNotice('示例没加载出来：' + (e && e.message ? e.message : '') + '。检查一下网络再试。');
+    }
+  }
+
+  $('fileInput').addEventListener('change', async function () {
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (!f || busy || rec) return;
+    showNotice('');
+    setBusy(true);
+    setMood('think');
+    setHero('正在读取录音…', f.name);
+    try {
+      ensureEngine().catch(function () {});
+      var ab = await f.arrayBuffer();
+      var buf = await decode(ab);
+      setBusy(false);
+      await analyzeAndShow(mixdown(buf), buf.sampleRate, 'file');
+    } catch (e) {
+      setBusy(false);
+      setMood('idle');
+      setHero('这个文件读不出来', '换成 m4a、mp3 或 wav 格式试试');
+    }
+  });
+
+  /* --- 渲染结果 --- */
+  function icon(id) { return '<svg class="ic"><use href="#' + id + '" xlink:href="#' + id + '"/></svg>'; }
+  function fmtTime(d) {
+    function p2(v) { return (v < 10 ? '0' : '') + v; }
+    return (d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+  }
+  function renderResult(v, meta) {
+    var h = [];
+    h.push('<div class="res-top">' + (meta.example ? '<span class="badge">示例结果</span><span>点上面的小宝宝听一次，这里会换成真的</span>' : '<span class="badge">' + ({ mic: '刚刚听的', file: '上传的录音', demo: '示例哭声' }[meta.source] || '结果') + '</span><time class="num">' + fmtTime(meta.when) + '</time>') + '</div>');
+    h.push('<div class="verdict"><div class="face" id="resFace"></div><div class="verdict-text"><h3>' + esc(v.title) + '</h3><p class="sub">' + esc(v.sub) + '</p>');
+    h.push('<div class="score"><span>' + esc(v.scoreText) + '</span><span class="bar"><b style="width:' + Math.round(Math.max(0.03, v.scoreValue) * 100) + '%"></b></span></div></div></div>');
+    h.push('<div class="stats">');
+    v.stats.forEach(function (s) { h.push('<div class="stat ' + s.cls + '"><b>' + esc(s.value) + '</b><span>' + esc(s.label) + '</span></div>'); });
+    h.push('</div>');
+    if (v.alert) h.push('<p class="alert">' + esc(v.alert) + '</p>');
+    if (v.reasons.length) {
+      h.push('<h4 class="sec">可能的原因</h4><ol class="reasons">');
+      v.reasons.slice(0, 3).forEach(function (r, i) {
+        h.push('<li class="reason k-' + r.key + (i === 0 ? ' is-top' : '') + '"><span class="rico">' + icon(r.icon) + '</span><div><div class="rhead"><span class="name">' + esc(r.name) + '</span><span class="tag">' + esc(r.tag) + '</span></div><div class="rbar"><b style="width:' + Math.round(r.score * 100) + '%"></b></div><p>' + esc(r.why) + '</p></div></li>');
+      });
+      h.push('</ol>');
+    }
+    h.push('<h4 class="sec">' + esc(v.tipsTitle) + '</h4><ul class="tips">');
+    v.tipList.forEach(function (t) { h.push('<li>' + esc(t) + '</li>'); });
+    h.push('</ul>');
+    h.push('<details class="how"><summary>是怎么判断的？</summary><ol><li>用谷歌开源的 YAMNet 声音模型，判断录音里是不是宝宝哭声。</li><li>分析音量和音调，看哭得急不急。</li><li>结合你记的喂奶、睡醒、换尿布时间，排出可能的原因。</li></ol><p class="fine">只听哭声分不清是饿还是困，所以时间记录最关键。记得越准，猜得越准。</p></details>');
+    $('result').innerHTML = h.join('');
+    $('resFace').appendChild(mascot(v.mood));
+  }
+
+  var REASON_NAME = { hungry: '饿了', tired: '困了', diaper: '尿布', gas: '胀气', comfort: '想抱抱' };
+  var URG = { calm: '不太急', fussy: '有点急', urgent: '很急' };
+  function renderDiary() {
+    var list = $('diary'), hs = S.history.slice(0, 8);
+    $('diaryEmpty').hidden = hs.length > 0;
+    $('clearHist').hidden = hs.length === 0;
+    list.innerHTML = hs.map(function (it) {
+      var label = it.v === 'none' ? '没听到哭声' : (REASON_NAME[it.r] ? '可能' + REASON_NAME[it.r] : '在哭');
+      var chip = it.v === 'none' ? '<span class="chip">—</span>' : '<span class="chip c-cry">' + esc(URG[it.u] || '') + '</span>';
+      return '<li><time>' + esc(fmtTime(new Date(it.t))) + '</time><span>' + esc(label) + '</span>' + chip + '</li>';
+    }).join('');
+  }
+
+  /* --- 宝宝最近 --- */
+  var LOGS = {
+    feed: { key: 'feedAt', title: '上次喂奶是什么时候？' },
+    wake: { key: 'wakeAt', title: '宝宝上次睡醒是什么时候？' },
+    diaper: { key: 'diaperAt', title: '上次换尿布是什么时候？' }
+  };
+  var OPTS = [['刚刚', 0], ['15 分钟前', 15], ['30 分钟前', 30], ['1 小时前', 60], ['1 个半小时前', 90], ['2 小时前', 120], ['2 个半小时前', 150], ['3 小时前', 180], ['4 小时前', 240], ['5 小时以上', 300]];
+  var sheetKind = null, lastFocus = null;
+  function renderLogs() {
+    Object.keys(LOGS).forEach(function (k) {
+      var el = $('v-' + k), t = S[LOGS[k].key];
+      var m = minsSince(t);
+      if (m == null || m > 24 * 60) { el.textContent = '点我记录'; el.classList.add('is-empty'); }
+      else {
+        el.classList.remove('is-empty');
+        el.textContent = k === 'wake' ? '醒了 ' + CRY.dur(m) : (m < 1 ? '刚刚' : CRY.dur(m) + '前');
+      }
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-act="age"]'), function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-v') === S.age)); });
+  }
+  function openSheet(kind) {
+    sheetKind = kind;
+    lastFocus = document.activeElement;
+    $('sheetTitle').textContent = LOGS[kind].title;
+    $('opts').innerHTML = OPTS.map(function (o, i) { return '<button class="opt' + (i === 0 ? ' is-now' : '') + '" type="button" data-act="pick" data-min="' + o[1] + '">' + o[0] + '</button>'; }).join('');
+    $('sheetBack').hidden = false;
+    var first = $('opts').querySelector('button');
+    if (first) first.focus();
+  }
+  function closeSheet() {
+    $('sheetBack').hidden = true;
+    sheetKind = null;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetKind) closeSheet(); });
+
+  /* --- 点击事件统一分发 --- */
+  var clearArmed = false;
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-act]');
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'closesheet' && el.id === 'sheetBack' && e.target !== el) return;
+    if (act === 'listen') onListen();
+    else if (act === 'demo') onDemo();
+    else if (act === 'retry') ensureEngine().catch(function () {});
+    else if (act === 'log') openSheet(el.getAttribute('data-k'));
+    else if (act === 'pick') {
+      S[LOGS[sheetKind].key] = Date.now() - Number(el.getAttribute('data-min')) * 60000;
+      save(); renderLogs(); closeSheet();
+    } else if (act === 'clearlog') {
+      S[LOGS[sheetKind].key] = null; save(); renderLogs(); closeSheet();
+    } else if (act === 'closesheet') closeSheet();
+    else if (act === 'age') { S.age = el.getAttribute('data-v'); save(); renderLogs(); }
+    else if (act === 'clearhist') {
+      if (!clearArmed) {
+        clearArmed = true; el.textContent = '确定清空？'; el.classList.add('is-confirm');
+        setTimeout(function () { clearArmed = false; el.textContent = '清空'; el.classList.remove('is-confirm'); }, 3000);
+      } else {
+        clearArmed = false; S.history = []; save(); renderDiary();
+        el.textContent = '清空'; el.classList.remove('is-confirm');
+      }
+    }
+  });
+
+  /* --- 首屏：示例结果 --- */
+  var exampleRes = { verdict: 'cry', cryScore: 0.96, cryFrac: 0.9, likelyCat: false, quiet: false, others: [], loudDb: -21, pitchHz: 486, pitchHi: 640, seconds: 6.9, patches: 13 };
+  var exampleCtx = { age: '0-3', feedMin: 165, wakeMin: 40, diaperMin: 75, hour: 15 };
+  renderResult(CRY.explain(exampleRes, exampleCtx), { example: true });
+  renderLogs();
+  renderDiary();
+  setInterval(renderLogs, 30000);
+
+  // 空闲时预先加载模型，点「听一听」时就不用等
+  setTimeout(function () { ensureEngine().catch(function () {}); }, 600);
+})();
+</script>

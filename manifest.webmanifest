@@ -1,0 +1,16 @@
+{
+  "name": "宝宝哭声翻译器",
+  "short_name": "哭声翻译器",
+  "description": "宝宝哭了点一下，手机在本机听一听，猜可能的原因并给出安抚办法。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FFF5D6",
+  "theme_color": "#FFF5D6",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
